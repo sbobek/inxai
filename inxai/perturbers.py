@@ -3,7 +3,10 @@ import numpy as np
 
 
 class NormalNoisePerturber(TransformerMixin, BaseEstimator):
-    def __init__(self, loc=0, scale=1, importances = None):
+    """ Generates normal noise according to specified parameters.
+    During perturbation phase the noise is added to the features.
+    loc and scale are not given, the distribution si learned during @fit."""
+    def __init__(self, loc=None, scale=None, importances = None):
         self.loc = loc
         self.scale = scale
         self.importances = importances
@@ -14,6 +17,8 @@ class NormalNoisePerturber(TransformerMixin, BaseEstimator):
         print(importances)
 
     def fit(self, X):
+        if self.scale is None or self.loc is None:
+            pass
         self.colnames = X.columns
         return self
 
@@ -42,3 +47,14 @@ class CategoricalNoisePerturber(TransformerMixin, BaseEstimator):
                 if np.random.random() < self.probability_multiplier * self.importances[col_idx]:
                     X.loc[row[0], column] = np.random.choice(unique_elements)
         return X
+
+
+class ShufflePerturber(TransformerMixin, BaseEstimator):
+    """Perturbation that is performed according to the distribution of the features by shuffling values within features
+    across all instances. No artificial noise is generated
+    """
+    def fit(self, X):
+        return self
+
+    def transform(self, X):
+        pass
