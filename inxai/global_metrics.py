@@ -2,6 +2,8 @@ from sklearn.metrics import accuracy_score
 import numpy as np
 from matplotlib import pyplot as plt
 import pandas as pd
+import shap
+import lime
 
 
 def create_intermediate_points(start_vals, end_vals, resolution):
@@ -11,13 +13,72 @@ def create_intermediate_points(start_vals, end_vals, resolution):
     return np.array(arr).T
 
 
+def generate_per_instance_importances(models, X, y, framework='tree_shap'):
+    """
+    It generates explanations per insance using predefined framework.
+    It is wise to subsample training set, as calculating explanations is time consuming
+    especially for frameworks such as LIME.
+
+    :param models:
+    :param X:
+    :param y:
+    :param framework:
+    :return:
+    """
+    importances_per_model = []
+    if type(models) != list:
+        models = [models]
+    for model in models:
+        if framework == 'tree_shap':
+            explainer = shap.TreeExplainer(model)
+            all_importances = explainer.shap_values(X)
+
+            # If is multiclass, choose explanation for the correct class
+            if isinstance(all_importances, list):
+                right_imps = []
+                for idx, label in enumerate(y):
+                    right_imps.append(all_importances[label][idx])
+                all_importances = right_imps
+
+        elif framework == 'lime':
+            all_importances = []
+
+            explainer = lime.lime_tabular.LimeTabularExplainer(X.values, feature_names=X.columns)
+
+            for index, (skip, row) in enumerate(X.iterrows()):
+                correct_label = y[index]
+
+                # If is multiclass, choose explanation for the correct class
+                exp = explainer.explain_instance(row, model.predict_proba, num_features=len(X.columns),
+                                                 labels=(correct_label,))
+                imps = dict()
+
+                for feat in exp.local_exp[correct_label]:
+                    imps[feat[0]] = feat[1]
+                imp_vals = []
+                for i in range(len(imps)):
+                    imp_vals.append(imps[i])
+
+                all_importances.append(imp_vals)
+
+        else:
+            print('Bad framework.')
+            return None
+        importances_per_model.append(all_importances)
+
+    if len(importances_per_model) == 1:
+        return importances_per_model[0]
+    else:
+        return importances_per_model
+
+
 class GlobalFeatureMetric:
     """
 
     """
 
     def gradual_perturbation(self, model, X, y, importances_orig, column_transformer, preprocessing_pipeline=None,
-                             resolution=10, count_per_step=5, mode='all'):
+                             resolution=10, count_per_step=5):
         """
 
 
@@ -29,7 +90,6 @@ class GlobalFeatureMetric:
         :param preprocessing_pipeline:
         :param resolution:
         :param count_per_step:
-        :param mode:
         :return:
         """
 
@@ -38,7 +98,7 @@ class GlobalFeatureMetric:
         inv_norm_importances = 1 - abs(importances_orig) / (sum(abs(importances_orig)))
 
         intermediate_importances = create_intermediate_points(np.zeros(len(inv_norm_importances)),
-                                                                   inv_norm_importances, resolution)
+                                                              inv_norm_importances, resolution)
 
         accuracies = []
         for importances in intermediate_importances:
@@ -81,8 +141,48 @@ class GlobalFeatureMetric:
     def gradual_elimination(self):
         pass
 
-    def stability(self):
-        pass
+    def stability(self, X, all_importances, epsilon=3):
+        """Stability as Lipschitz coefficient.
 
-    def consistency(self):
-        pass
+        :param X:
+        :param all_importances:
+        :param epsilon:
+        :return:
+        """
+        l_values = []
+
+        for data_idx, (_, observation) in enumerate(X.iterrows()):
+            max_val = 0
+            for idx, (_, other_observation) in enumerate(X.iterrows()):
+                dist = np.linalg.norm(observation - other_observation)
+                if dist < epsilon:
+                    l_val = np.linalg.norm(
+                        pd.core.series.Series(all_importances[data_idx]) - pd.core.series.Series(
+                            all_importances[idx])) / dist
+
+                    if l_val > max_val:
+                        max_val = l_val
+            if max_val:
+                l_values.append(max_val)
+        return l_values
+
+    def consistency(self, all_importances_per_model):
+
+        c_values = []
+
+        for obs_idx in range(len(all_importances_per_model[0])):
+            largest_dist = 0
+            for model_idx, model_imps in enumerate(all_importances_per_model):
+                for compared_model in all_importances_per_model[:model_idx]:
+                    current_imps = model_imps[obs_idx]
+                    other_imps = compared_model[obs_idx]
+                    if not isinstance(current_imps, np.ndarray):
+                        current_imps = np.array(current_imps)
+                    if not isinstance(other_imps, np.ndarray):
+                        other_imps = np.array(other_imps)
+                    dist = np.linalg.norm(current_imps - other_imps)
+                    if dist > largest_dist:
+                        largest_dist = dist
+            c_values.append(largest_dist)
+
+        return c_values
