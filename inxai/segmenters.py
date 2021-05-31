@@ -7,7 +7,12 @@ class BaseSegmenter(TransformerMixin, BaseEstimator):
         return self
 
     def transform(self, X):
-        return X
+        Xs= X.apply(lambda x: BaseSegment(x))
+        return Xs
 
 
 
+class BaseSegment:
+    vlaue=None
+    def __init__(self, value):
+        self.vlaue=value
