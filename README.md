@@ -8,3 +8,5 @@ conda activate inxai
 conda install pip
 pip install -r requirements.txt
 ```
+
+After that run `jupyter lab` and anvigate to `examples` direcotry to run notebooks
