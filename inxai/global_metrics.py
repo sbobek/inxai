@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 import pandas as pd
 import shap
 import lime
-
+from captum.attr import GradientShap
 
 def create_intermediate_points(start_vals, end_vals, resolution):
     arr = []
@@ -39,6 +39,7 @@ def generate_per_instance_importances(models, X, y, framework='tree_shap'):
                 for idx, label in enumerate(y):
                     right_imps.append(all_importances[label][idx])
                 all_importances = right_imps
+
         elif framework == 'kernel_shap':
             explainer = shap.KernelExplainer(model.predict_proba, X)
             all_importances = explainer.shap_values(X)
@@ -49,6 +50,7 @@ def generate_per_instance_importances(models, X, y, framework='tree_shap'):
                 for idx, label in enumerate(y):
                     right_imps.append(all_importances[label][idx])
                 all_importances = right_imps
+
         elif framework == 'lime':
             all_importances = []
 
@@ -69,6 +71,10 @@ def generate_per_instance_importances(models, X, y, framework='tree_shap'):
                     imp_vals.append(imps[i])
 
                 all_importances.append(imp_vals)
+
+        # elif framework == 'gradient_shap':
+        #     explainer = GradientShap(autoencoder_model)
+        #     attributions = explainer.attribute(X, baseline, target=target)
 
         else:
             print('Bad framework.')
