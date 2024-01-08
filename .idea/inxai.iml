@@ -2,8 +2,23 @@
 <module type="JAVA_MODULE" version="4">
   <component name="NewModuleRootManager" inherit-compiler-output="true">
     <exclude-output />
-    <content url="file://$MODULE_DIR$" />
-    <orderEntry type="inheritedJdk" />
+    <content url="file://$MODULE_DIR$/../VividShade" />
+    <content url="file://$MODULE_DIR$">
+      <excludeFolder url="file://$MODULE_DIR$/venv-inxai" />
+    </content>
+    <content url="file://$MODULE_DIR$/../lux" />
+    <content url="file://$MODULE_DIR$/../p_tsxai_metrics" />
+    <content url="file://$MODULE_DIR$/../python-begginer-2023" />
+    <content url="file://$MODULE_DIR$/../x_biraffe3">
+      <sourceFolder url="file://$MODULE_DIR$/../x_biraffe3/jupyter-notebooks" isTestSource="false" />
+    </content>
+    <content url="file://$MODULE_DIR$/../x_xai_isi" />
+    <content url="file://$MODULE_DIR$/../xai-evaluation-classes" />
+    <content url="file://$MODULE_DIR$/../xai-isi" />
+    <orderEntry type="jdk" jdkName="Python 3.10 (venv-biraffe)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
+  </component>
+  <component name="SonarLintModuleSettings">
+    <option name="uniqueId" value="82627752-62bc-4570-8ab2-66126bc37287" />
   </component>
 </module>
